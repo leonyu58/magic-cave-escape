@@ -1,4 +1,4 @@
-# Magic Cave Escape (Name in Progress)
+# Magic Cave Escape
 
 ## Vision Statement
 
