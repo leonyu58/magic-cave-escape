@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://chhpb7lkijil2"]
+
+[ext_resource type="Script" uid="uid://csx5gxqy1le7p" path="res://scripts/underground.gd" id="1_underground"]
+
+[node name="Underground" type="Node2D" unique_id=1119498276]
+script = ExtResource("1_underground")
