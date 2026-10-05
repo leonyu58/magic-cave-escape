@@ -37,9 +37,8 @@ func setup_input_actions():
 	add_key_action("magic", KEY_Q)
 	add_key_action("dash", KEY_SHIFT)
 	add_key_action("rune_fire", KEY_1)
-	add_key_action("rune_water", KEY_2)
-	add_key_action("rune_earth", KEY_3)
-	add_key_action("rune_air", KEY_4)
+	add_key_action("rune_water", KEY_3)
+	add_key_action("rune_earth", KEY_2)
 
 func add_key_action(action_name: String, keycode: Key):
 	if not InputMap.has_action(action_name):
@@ -97,7 +96,6 @@ func build_level():
 	]:
 		make_crystal(crystal_data[0], crystal_data[1])
 
-	# Elemental runes (all four are represented in the prototype)
 	spawn_rune("fire", Vector2(1240, 455))
 	spawn_rune("air", Vector2(1870, 335))
 	spawn_rune("earth", Vector2(2720, 455))

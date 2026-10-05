@@ -55,8 +55,8 @@ func setup_input_actions() -> void:
 	ensure_key_action("magic", KEY_Q)
 	ensure_key_action("dash", KEY_SHIFT)
 	ensure_key_action("rune_fire", KEY_1)
-	ensure_key_action("rune_water", KEY_2)
-	ensure_key_action("rune_earth", KEY_3)
+	ensure_key_action("rune_water", KEY_3)
+	ensure_key_action("rune_earth", KEY_2)
 
 func ensure_key_action(action_name: String, keycode: Key) -> void:
 	if not InputMap.has_action(action_name):

@@ -104,7 +104,6 @@ func _physics_process(delta: float) -> void:
 			velocity.y = JUMP_VELOCITY
 
 		if Input.is_action_just_pressed("move_up") and bool(unlocked["air"]) and not is_on_floor() and updraft_available and updraft_cooldown <= 0.0:
-			# Air is passive: one midair W updraft, refreshed whenever you touch the ground.
 			velocity.y = -640.0
 			updraft_available = false
 			updraft_cooldown = 0.22
@@ -157,7 +156,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func cycle_rune(direction: int) -> void:
 	var available: Array[String] = []
-	var rune_order: Array[String] = ["fire", "water", "earth"]
+	var rune_order: Array[String] = ["fire", "earth", "water"]
 	for rune_name: String in rune_order:
 		if bool(unlocked.get(rune_name, false)):
 			available.append(rune_name)
@@ -216,7 +215,6 @@ func unlock_rune(rune_name: String) -> void:
 		return
 	unlocked[rune_name] = true
 	rune_unlocked.emit(rune_name)
-	# Air is passive and never replaces the equipped combat/puzzle rune.
 	if rune_name != "air":
 		current_rune = rune_name
 		rune_changed.emit(current_rune)

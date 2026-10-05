@@ -23,7 +23,6 @@ func fire_burst() -> void:
 		return
 	var aim: Vector2 = (target.global_position - global_position).normalized()
 	var base_angle: float = aim.angle()
-	# Three aimed, gently homing shots: enough pressure to encourage dashing/updrafting.
 	var shot_offsets: PackedFloat32Array = PackedFloat32Array([-0.18, 0.0, 0.18])
 	for offset in shot_offsets:
 		var bullet: Variant = bullet_script.new()
