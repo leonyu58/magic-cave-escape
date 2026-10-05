@@ -34,6 +34,15 @@ var unlocked: Dictionary = {
 }
 
 var fireball_script: Script = preload("res://scripts/fireball.gd")
+var idle_texture: Texture2D = preload("res://assets/player.png")
+var sword_texture: Texture2D = preload("res://assets/player_sword.png")
+var player_sprite: Sprite2D
+var walk_anim_time: float = 0.0
+var walk_frame: int = 0
+var idle_anim_time: float = 0.0
+var idle_frame: int = 0
+var fire_cooldown: float = 0.0
+var earth_cooldown: float = 0.0
 
 func _ready() -> void:
 	add_to_group("player")
@@ -45,6 +54,21 @@ func _ready() -> void:
 	capsule.height = 42.0
 	shape.shape = capsule
 	add_child(shape)
+	player_sprite = Sprite2D.new()
+	player_sprite = Sprite2D.new()
+
+	if get_tree().current_scene.name == "Surface":
+		player_sprite.texture = idle_texture
+	else:
+		player_sprite.texture = sword_texture
+
+	player_sprite.hframes = 2
+	player_sprite.vframes = 2
+	player_sprite.frame = 0
+	player_sprite.scale = Vector2(2.0, 2.0)
+	player_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	player_sprite.position = Vector2(0.0, 0.0)
+	add_child(player_sprite)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -55,6 +79,8 @@ func _physics_process(delta: float) -> void:
 	shield_time = maxf(shield_time - delta, 0.0)
 	invuln_time = maxf(invuln_time - delta, 0.0)
 	slash_time = maxf(slash_time - delta, 0.0)
+	fire_cooldown = maxf(fire_cooldown - delta, 0.0)
+	earth_cooldown = maxf(earth_cooldown - delta, 0.0)
 
 	if dash_time > 0.0:
 		dash_time -= delta
@@ -95,6 +121,26 @@ func _physics_process(delta: float) -> void:
 	if global_position.y > 900.0:
 		take_damage(99)
 
+	if is_instance_valid(player_sprite):
+		player_sprite.flip_h = facing < 0
+
+		if absf(velocity.x) > 10.0 and is_on_floor():
+			idle_anim_time = 0.0
+			walk_anim_time += delta
+
+			if walk_anim_time >= 0.12:
+				walk_anim_time = 0.0
+				walk_frame = (walk_frame + 1) % 3
+				player_sprite.frame = walk_frame
+
+		elif is_on_floor():
+			walk_anim_time = 0.0
+			idle_anim_time += delta
+
+			if idle_anim_time >= 0.35:
+				idle_anim_time = 0.0
+				idle_frame = (idle_frame + 1) % 3
+				player_sprite.frame = idle_frame
 	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -176,16 +222,18 @@ func unlock_rune(rune_name: String) -> void:
 		rune_changed.emit(current_rune)
 
 func use_magic() -> void:
-	if current_rune == "fire" and bool(unlocked["fire"]):
+	if current_rune == "fire" and bool(unlocked["fire"]) and fire_cooldown <= 0.0:
 		var fireball: Variant = fireball_script.new()
 		fireball.global_position = global_position + Vector2(float(facing) * 28.0, -5.0)
 		fireball.direction = facing
 		get_tree().current_scene.add_child(fireball)
+		fire_cooldown = 0.8
 	elif current_rune == "water" and bool(unlocked["water"]):
 		if get_tree().current_scene.has_method("activate_water"):
 			get_tree().current_scene.activate_water(global_position)
-	elif current_rune == "earth" and bool(unlocked["earth"]):
-		shield_time = 2.5
+	elif current_rune == "earth" and bool(unlocked["earth"]) and earth_cooldown <= 0.0:
+		shield_time = 4.0
+		earth_cooldown = 5.0
 
 func take_damage(amount: int) -> void:
 	if invuln_time > 0.0:
@@ -227,17 +275,7 @@ func _draw() -> void:
 			draw_line(Vector2(x_offset, y_offset + 28.0), Vector2(x_offset * 0.65, y_offset - 7.0), Color(0.68, 0.94, 1.0, 0.82 * fx_alpha), 3.0)
 		draw_arc(Vector2(0.0, 27.0), 29.0, PI, TAU, 18, Color(0.74, 0.94, 1.0, 0.62 * fx_alpha), 3.0)
 
-	var flash: bool = invuln_time > 0.0 and int(invuln_time * 12.0) % 2 == 0
-	var body_color: Color = Color(0.95, 0.76, 1.0) if not flash else Color(1.0, 1.0, 1.0, 0.4)
-	draw_circle(Vector2(0.0, -14.0), 10.0, body_color)
-	draw_rect(Rect2(-10.0, -5.0, 20.0, 27.0), body_color)
-	draw_rect(Rect2(-9.0, 21.0, 7.0, 13.0), Color(0.45, 0.33, 0.62))
-	draw_rect(Rect2(2.0, 21.0, 7.0, 13.0), Color(0.45, 0.33, 0.62))
-
-	if sword_visible:
-		draw_line(Vector2(float(facing) * 8.0, 2.0), Vector2(float(facing) * 30.0, -8.0), Color(0.85, 0.9, 1.0), 4.0)
-		draw_line(Vector2(float(facing) * 27.0, -10.0), Vector2(float(facing) * 34.0, -13.0), Color.WHITE, 2.0)
-
+	
 	if slash_time > 0.0:
 		var slash_color: Color = Color(0.98, 0.82, 1.0, 0.9) if not slash_strong else Color(0.72, 0.9, 1.0, 0.95)
 		var radius: float = 42.0 if not slash_strong else 55.0

@@ -35,5 +35,5 @@ func _draw() -> void:
 		var trail_x: float = -float(direction) * (10.0 + float(i) * 8.0)
 		draw_circle(Vector2(trail_x, 0.0), 7.0 - float(i) * 1.4, Color(1.0, 0.28, 0.06, 0.18 - float(i) * 0.035))
 	draw_circle(Vector2.ZERO, 11.0 + sin(anim_time * 14.0), Color(1.0, 0.25, 0.08, 0.28))
-	draw_circle(Vector2.ZERO, 6.0, Color(1.0, 0.52, 0.12))
-	draw_circle(Vector2.ZERO, 2.5, Color(1.0, 0.95, 0.65))
+	draw_circle(Vector2.ZERO, 10.0, Color(1.0, 0.52, 0.12))
+	draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.95, 0.65))
