@@ -36,6 +36,8 @@ var unlocked: Dictionary = {
 var fireball_script: Script = preload("res://scripts/fireball.gd")
 var idle_texture: Texture2D = preload("res://assets/player.png")
 var sword_texture: Texture2D = preload("res://assets/player_sword.png")
+var walk_texture: Texture2D = preload("res://assets/player_walk.png")
+var walk_sword_texture: Texture2D = preload("res://assets/player_walk_sword.png")
 var player_sprite: Sprite2D
 var walk_anim_time: float = 0.0
 var walk_frame: int = 0
@@ -120,26 +122,51 @@ func _physics_process(delta: float) -> void:
 	if global_position.y > 900.0:
 		take_damage(99)
 
-	if is_instance_valid(player_sprite):
+
+	if absf(velocity.x) > 10.0 and is_on_floor():
+		idle_anim_time = 0.0
+
+		if get_tree().current_scene.name == "Surface":
+			player_sprite.texture = walk_texture
+		else:
+			player_sprite.texture = walk_sword_texture
+
+		player_sprite.flip_h = facing > 0
+
+		walk_anim_time += delta
+
+		if walk_anim_time >= 0.12:
+			walk_anim_time = 0.0
+			walk_frame = (walk_frame + 1) % 4
+
+		player_sprite.frame = walk_frame
+
+	elif is_on_floor():
+		walk_anim_time = 0.0
+
+		if get_tree().current_scene.name == "Surface":
+			player_sprite.texture = idle_texture
+		else:
+			player_sprite.texture = sword_texture
+
 		player_sprite.flip_h = facing < 0
 
-		if absf(velocity.x) > 10.0 and is_on_floor():
+		idle_anim_time += delta
+
+		if idle_anim_time >= 0.35:
 			idle_anim_time = 0.0
-			walk_anim_time += delta
+			idle_frame = (idle_frame + 1) % 3
 
-			if walk_anim_time >= 0.12:
-				walk_anim_time = 0.0
-				walk_frame = (walk_frame + 1) % 3
-				player_sprite.frame = walk_frame
+		player_sprite.frame = idle_frame
 
-		elif is_on_floor():
-			walk_anim_time = 0.0
-			idle_anim_time += delta
+	else:
+		if get_tree().current_scene.name == "Surface":
+			player_sprite.texture = walk_texture
+		else:
+			player_sprite.texture = walk_sword_texture
 
-			if idle_anim_time >= 0.35:
-				idle_anim_time = 0.0
-				idle_frame = (idle_frame + 1) % 3
-				player_sprite.frame = idle_frame
+		player_sprite.flip_h = facing > 0
+		player_sprite.frame = walk_frame
 	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -275,11 +302,78 @@ func _draw() -> void:
 
 	
 	if slash_time > 0.0:
-		var slash_color: Color = Color(0.98, 0.82, 1.0, 0.9) if not slash_strong else Color(0.72, 0.9, 1.0, 0.95)
-		var radius: float = 42.0 if not slash_strong else 55.0
-		var start_angle: float = -0.8 if facing > 0 else PI - 0.8
-		var end_angle: float = 0.8 if facing > 0 else PI + 0.8
-		draw_arc(Vector2(0.0, -2.0), radius, start_angle, end_angle, 18, slash_color, 5.0 if slash_strong else 3.0)
+		var duration: float = 0.18 if slash_strong else 0.12
+		var progress: float = clampf(1.0 - (slash_time / duration), 0.0, 1.0)
+		var fade: float = sin(progress * PI)
+
+		var center_angle: float = lerpf(-1.15, 0.85, progress)
+		var arc_half: float = 0.62 if slash_strong else 0.52
+		var start_angle: float = center_angle - arc_half
+		var end_angle: float = center_angle + arc_half
+
+		var outer_radius: float = 60.0 if slash_strong else 49.0
+		var inner_radius: float = 38.0 if slash_strong else 33.0
+		var slash_center: Vector2 = Vector2(float(facing) * 8.0, -3.0)
+
+		var fill_color: Color
+		var edge_color: Color
+
+		if slash_strong:
+			fill_color = Color(0.55, 0.85, 1.0, 0.38 * fade)
+			edge_color = Color(0.88, 0.97, 1.0, 0.95 * fade)
+		else:
+			fill_color = Color(0.92, 0.68, 1.0, 0.34 * fade)
+			edge_color = Color(1.0, 0.90, 1.0, 0.95 * fade)
+
+		var slash_shape: PackedVector2Array = PackedVector2Array()
+		var outer_edge: PackedVector2Array = PackedVector2Array()
+		var segments: int = 12
+
+		for i in range(segments + 1):
+			var t: float = float(i) / float(segments)
+			var angle: float = lerpf(start_angle, end_angle, t)
+
+			var point: Vector2 = slash_center + Vector2(
+				cos(angle) * outer_radius * float(facing),
+				sin(angle) * outer_radius
+			)
+
+			slash_shape.append(point)
+			outer_edge.append(point)
+
+		for i in range(segments, -1, -1):
+			var t: float = float(i) / float(segments)
+			var angle: float = lerpf(start_angle, end_angle, t)
+
+			var point: Vector2 = slash_center + Vector2(
+				cos(angle) * inner_radius * float(facing),
+				sin(angle) * inner_radius
+			)
+
+			slash_shape.append(point)
+
+	# Filled sword trail.
+		draw_colored_polygon(slash_shape, fill_color)
+
+		# Bright cutting edge.
+		draw_polyline(
+			outer_edge,
+			edge_color,
+			4.0 if slash_strong else 2.5,
+			true
+		)
+
+		var tip: Vector2 = slash_center + Vector2(
+			cos(end_angle) * outer_radius * float(facing),
+			sin(end_angle) * outer_radius
+		)
+
+		draw_circle(tip, 4.0 if slash_strong else 3.0, edge_color)
+		draw_circle(
+			tip + Vector2(float(facing) * 6.0, -3.0),
+			2.0,
+			Color(1.0, 1.0, 1.0, 0.75 * fade)
+		)
 
 	var rune_color: Color = Color(0.5, 0.5, 0.5)
 	if current_rune == "fire":
